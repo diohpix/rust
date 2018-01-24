@@ -2,3 +2,7 @@
 name = "sample"
 version = "0.0.1"
 authors = [ "diohpix@gmail.com>" ]
+
+[dependencies]
+bincode = "0.6.1"
+serde_derive = "0.8.23"
