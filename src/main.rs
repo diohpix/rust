@@ -1,15 +1,40 @@
+
 extern crate byteorder;
+extern crate bincode;
 extern crate hex_slice;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 use hex_slice::AsHex;
+
 
 use std::io::prelude::*;
 use std::net::TcpStream;
 
 use byteorder::{BigEndian, WriteBytesExt,ByteOrder};
+use serde::{Serialize, Serializer, Deserialize, Deserializer};
 
 //extern crate bincode;
 //#[macro_use]
 //extern crate serde_derive;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct func{
+    result_count:  u16,
+    base : basefunc,
+    data_len : u16,
+    blk : i32,
+    data: Vec<u8>
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct basefunc{
+    result_len : u16,
+    func_start  : u16,
+    func_type : i32,
+    func_end : u16,
+    dummy : u16,
+    dummy2 : u16
+}
+
 
 static CNCHANDLE: [u8;12] = [  0xa0, 0xa0,  0xa0,  0xa0, 0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x00,0x02 ];
 static FN_HEADER: [u8;8] = [ 0xa0,  0xa0,  0xa0, 0xa0, 0x00, 0x01, 0x21, 0x01 ];
@@ -28,7 +53,6 @@ static KEY_CNC_RDEXEPROG: [u8;4] = 	[ 0x00, 0x01, 0x00, 0x20 ];
 
 fn  main()
 {
-    
     
     let   stream = TcpStream::connect("127.0.0.1:8193").unwrap();
     let _ = connect(&stream);
@@ -62,7 +86,9 @@ fn get_program(mut stream: &TcpStream){
     let  mut body = vec![0; r as usize];
     stream.read(&mut body);
     println!("Body {:?}\n Len {} ",body,body.len());
-    cnc_rdexecprog(&mut body);
+    //let decode: func = bincode::serde::deserialize(&body).unwrap();
+    //println!("resultCount {:?}",decode.result_count);
+    //cnc_rdexecprog(&mut body);
 }
 fn make_request_packet(count : u16) ->  Vec<u8>  {
     let total_len = DEFAULT_REQ_COUNT_LENGTH + DEFAULT_REQ_LENGTH * count;
@@ -88,3 +114,4 @@ fn cnc_rdexecprog(vec : &mut Vec<u8> ){
     let result_count = BigEndian::read_u16(&vec);
     println!("resultCount {}",result_count);
 }
+

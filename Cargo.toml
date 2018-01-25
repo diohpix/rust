@@ -4,7 +4,8 @@ version = "0.0.1"
 authors = [ "diohpix@gmail.com>" ]
 
 [dependencies]
-bincode = "0.6.1"
+bincode = "*"
 byteorder="1.2.1"
-serde_derive = "0.8.23"
+serde_derive = "*"
+serde = "*"
 hex-slice="0.1.2"
