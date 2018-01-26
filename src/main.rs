@@ -9,30 +9,30 @@ use hex_slice::AsHex;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
-
+use std::mem;
 use byteorder::{BigEndian, WriteBytesExt,ByteOrder};
 use serde::{Serialize, Serializer, Deserialize, Deserializer};
-
+use std::time::Instant;
 //extern crate bincode;
 //#[macro_use]
 //extern crate serde_derive;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct func{
-    result_count:  u16,
-    base : basefunc,
-    data_len : u16,
-    blk : i32,
+    result_count:  u16, //2
+    base : basefunc, //14
+    data_len : u16, //2
+    blk : i64, // 4
     data: Vec<u8>
 }
 #[derive(Debug, Serialize, Deserialize)]
 struct basefunc{
-    result_len : u16,
-    func_start  : u16,
-    func_type : i32,
-    func_end : u16,
-    dummy : u16,
-    dummy2 : u16
+    result_len : u16, //2
+    func_start  : u16, //2
+    func_type : i32, //4
+    func_end : u16,//2
+    dummy : u16,//2
+    dummy2 : u16//2
 }
 
 
@@ -56,19 +56,27 @@ fn  main()
     
     let   stream = TcpStream::connect("127.0.0.1:8193").unwrap();
     let _ = connect(&stream);
-    
-    let response2 = get_program(&stream);
-    
-    //let _ = stream.write(&[1]); // ignore the Result
-    //let _ = stream.read(&mut [0; 128]); // ignore this too
+    let mut count=0u32;
+    let start = Instant::now();
+    loop{
+        count = count + 1;
+        let response2 = get_program(&stream);
+        println!("---------------------------------------------------");
+        if count == 100 {
+            println!("OK");
+            break;
+        }
+    }
+    let elapsed = start.elapsed();
+    println!("Elapsed: {} ms",
+             (elapsed.as_secs() * 1_000) + (elapsed.subsec_nanos() / 1_000_000) as u64);
 } // the 
 fn connect(mut stream: &TcpStream){
     let _rslt= stream.write(&CNCHANDLE);
     let r = read_body_length(stream);
-    //println!("bodyLen {:?}  ",r);
     let  mut body = vec![0; r as usize];
     stream.read(&mut body);
-    println!("Body {:?}\n Len {} ",body,body.len());
+    //println!("Body {:?}\n Len {} ",body,body.len());
 }
 fn read_body_length(mut stream: &TcpStream)-> u16 {
     let mut header:[u8;10]  =[0;10];
@@ -85,10 +93,41 @@ fn get_program(mut stream: &TcpStream){
     //println!("bodyLen {:?}  ",r);
     let  mut body = vec![0; r as usize];
     stream.read(&mut body);
-    println!("Body {:?}\n Len {} ",body,body.len());
+    //println!("Body {:?}\n Len {} ",body,body.len());
     //let decode: func = bincode::serde::deserialize(&body).unwrap();
-    //println!("resultCount {:?}",decode.result_count);
-    //cnc_rdexecprog(&mut body);
+    //let len = BigEndian::read_u16(&body[0..2]);
+    let mut pos = 0 as usize;
+    let result_count = read_short(&mut body,&mut pos);
+    
+    let result_len = read_short(&mut body,&mut pos);
+    let func_start = read_short(&mut body,&mut pos);
+    let func_type = read_int(&mut body,&mut pos);
+    let _ = read_short(&mut body,&mut pos);
+    let _ = read_short(&mut body,&mut pos);
+    let _ = read_short(&mut body,&mut pos);
+    let data_len = read_short(&mut body,&mut pos);
+    let blk = read_int(&mut body,&mut pos);
+    read_string(&mut body,&mut pos);
+}
+fn read_short(body :&mut Vec<u8> , pos : &mut usize) -> u16{
+    let next = *pos   +2 ;
+    //println!("pos {:?} next {:?}",pos,next);
+    let len =  BigEndian::read_u16(&body[*pos .. next ]);
+    *pos = *pos + 2;
+    len
+}
+fn read_string(body :&mut Vec<u8> , pos : &mut usize){
+    let strv = &body[*pos .. body.len()];
+    //println!("pos {:?}",strv);
+    let s = String::from_utf8_lossy(strv);
+    println!("prog {} ",s);
+}
+fn read_int(body :&mut Vec<u8> , pos : &mut usize) -> u32{
+    let next = *pos   +4 ;
+    //println!("pos {:?} next {:?}",pos,next);
+    let len =  BigEndian::read_u32(&body[*pos .. next ]);
+    *pos = *pos + 4;
+    len
 }
 fn make_request_packet(count : u16) ->  Vec<u8>  {
     let total_len = DEFAULT_REQ_COUNT_LENGTH + DEFAULT_REQ_LENGTH * count;
