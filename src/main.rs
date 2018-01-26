@@ -62,7 +62,7 @@ fn  main()
         count = count + 1;
         let response2 = get_program(&stream);
         println!("---------------------------------------------------");
-        if count == 100 {
+        if count == 1 {
             println!("OK");
             break;
         }
@@ -75,7 +75,7 @@ fn connect(mut stream: &TcpStream){
     let _rslt= stream.write(&CNCHANDLE);
     let r = read_body_length(stream);
     let  mut body = vec![0; r as usize];
-    stream.read(&mut body);
+    let _=stream.read(&mut body);
     //println!("Body {:?}\n Len {} ",body,body.len());
 }
 fn read_body_length(mut stream: &TcpStream)-> u16 {
@@ -88,11 +88,11 @@ fn get_program(mut stream: &TcpStream){
     let mut response = make_request_packet(1);
     make_request(&mut response, &KEY_CNC_RDEXEPROG, 1024);
     //println!("sendPacket {:02x}  : length {:?} : capacity {:?}",response.as_hex() ,response.len(),response.capacity());
-    stream.write(&response);
+    let _ = stream.write(&response);
     let r = read_body_length(stream);
     //println!("bodyLen {:?}  ",r);
     let  mut body = vec![0; r as usize];
-    stream.read(&mut body);
+    let _ =stream.read(&mut body);
     //println!("Body {:?}\n Len {} ",body,body.len());
     //let decode: func = bincode::serde::deserialize(&body).unwrap();
     //let len = BigEndian::read_u16(&body[0..2]);
@@ -107,7 +107,7 @@ fn get_program(mut stream: &TcpStream){
     let _ = read_short(&mut body,&mut pos);
     let data_len = read_short(&mut body,&mut pos);
     let blk = read_int(&mut body,&mut pos);
-    read_string(&mut body,&mut pos);
+    let _=read_string(&mut body,&mut pos);
 }
 fn read_short(body :&mut Vec<u8> , pos : &mut usize) -> u16{
     let next = *pos   +2 ;
